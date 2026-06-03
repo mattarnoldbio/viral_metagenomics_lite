@@ -1,0 +1,7 @@
+contact_links:
+  - name: Join nf-core
+    url: https://nf-co.re/join
+    about: Please join the nf-core community here
+  - name: "Slack #viral_metagenomics_lite channel"
+    url: https://nfcore.slack.com/channels/viral_metagenomics_lite
+    about: Discussion about the mattarnoldbio/viral_metagenomics_lite pipeline
