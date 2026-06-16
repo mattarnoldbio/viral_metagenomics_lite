@@ -8,3 +8,6 @@ testing*
 *.pyc
 null/
 .lineage/
+output/
+assets/samples/
+assets/ref_genomes/

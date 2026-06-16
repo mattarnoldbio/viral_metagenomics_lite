@@ -13,6 +13,12 @@
                 "errorMessage": "Sample name must be provided and cannot contain spaces",
                 "meta": ["id"]
             },
+            "ref_genome": {
+                "type": "string",
+                "format": "file-path",
+                "errorMessage": "Reference genome file cannot contain spaces and must have extension '.fq.gz' or '.fastq.gz'",
+                "meta": ["ref_genome"]
+            },
             "fastq_1": {
                 "type": "string",
                 "format": "file-path",
@@ -22,11 +28,12 @@
             },
             "fastq_2": {
                 "type": "string",
-                "format": "file-path",
+                "format": "path",
                 "exists": true,
-                "pattern": "^([\\S\\s]*\\/)?[^\\s\\/]+\\.f(ast)?q\\.gz$",
-                "errorMessage": "FastQ file for reads 2 cannot contain spaces and must have extension '.fq.gz' or '.fastq.gz'"
+                "errorMessage": "FastQ file for reads 2 cannot contain spaces and must have extension '.fq.gz' or '.fastq.gz'",
+                "pattern": "^([\\S\\s]*\\/)?[^\\s\\/]+\\.f(ast)?q\\.gz$"                
             }
+
         },
         "required": ["sample", "fastq_1"]
     }
