@@ -42,10 +42,13 @@ workflow VIRAL_METAGENOMICS_LITE {
 
     //
     // MODULE: Trim adapters and low quality bases with Trim Galore
-    //
-    FASTQC(ch_samplesheet)
-    ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.map{ _meta, file -> file })
+    // TODO: Check params
+    TRIMGALORE(ch_samplesheet)
 
+    //
+    // MODULE: Remove PCR duplicates and low quality reads with PRINSEQ++
+    // TODO: Check params
+    PRINSEQPLUSPLUS(ch_samplesheet)
 
     //
     // Collate and save software versions
