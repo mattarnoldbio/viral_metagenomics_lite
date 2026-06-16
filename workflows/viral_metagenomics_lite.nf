@@ -5,7 +5,11 @@
 */
 include { FASTQC                 } from '../modules/nf-core/fastqc/main'
 include { MULTIQC                } from '../modules/nf-core/multiqc/main'
-include { TRIM_GALORE            } from '../modules/nf-core/trim_galore/main'
+include { TRIMGALORE             } from '../modules/nf-core/trimgalore/main'
+include { PRINSEQPLUSPLUS        } from '../modules/nf-core/prinseqplusplus/main'
+include { BOWTIE2_BUILD          } from '../modules/nf-core/bowtie2/build/main'
+include { BOWTIE2_ALIGN          } from '../modules/nf-core/bowtie2/align/main'
+include { MEGAHIT                } from '../modules/nf-core/megahit/main'  
 include { paramsSummaryMap       } from 'plugin/nf-schema'
 include { paramsSummaryMultiqc   } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
