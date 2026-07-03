@@ -3,17 +3,18 @@
     IMPORT MODULES / SUBWORKFLOWS / FUNCTIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-include { FASTQC                 } from '../modules/nf-core/fastqc/main'
-include { MULTIQC                } from '../modules/nf-core/multiqc/main'
-include { TRIMGALORE             } from '../modules/nf-core/trimgalore/main'
-include { PRINSEQPLUSPLUS        } from '../modules/nf-core/prinseqplusplus/main'
-include { BOWTIE2_BUILD          } from '../modules/nf-core/bowtie2/build/main'
-include { BOWTIE2_ALIGN          } from '../modules/nf-core/bowtie2/align/main'
-include { MEGAHIT                } from '../modules/nf-core/megahit/main'  
-include { paramsSummaryMap       } from 'plugin/nf-schema'
-include { paramsSummaryMultiqc   } from '../subworkflows/nf-core/utils_nfcore_pipeline'
-include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
-include { methodsDescriptionText } from '../subworkflows/local/utils_nfcore_viral_metagenomics_lite_pipeline'
+include { FASTQC                    } from '../modules/nf-core/fastqc/main'
+include { MULTIQC                   } from '../modules/nf-core/multiqc/main'
+include { TRIMGALORE                } from '../modules/nf-core/trimgalore/main'
+include { PRINSEQPLUSPLUS           } from '../modules/nf-core/prinseqplusplus/main'
+include { BOWTIE2_BUILD             } from '../modules/nf-core/bowtie2/build/main'
+include { BOWTIE2_ALIGN             } from '../modules/nf-core/bowtie2/align/main'
+include { MEGAHIT                   } from '../modules/nf-core/megahit/main'
+include { CONCATENATE_CONTIG_FILES  } from '../modules/local/concatenate_contig_files/main' 
+include { paramsSummaryMap          } from 'plugin/nf-schema'
+include { paramsSummaryMultiqc      } from '../subworkflows/nf-core/utils_nfcore_pipeline'
+include { softwareVersionsToYAML    } from '../subworkflows/nf-core/utils_nfcore_pipeline'
+include { methodsDescriptionText    } from '../subworkflows/local/utils_nfcore_viral_metagenomics_lite_pipeline'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -49,6 +50,62 @@ workflow VIRAL_METAGENOMICS_LITE {
     // MODULE: Remove PCR duplicates and low quality reads with PRINSEQ++
     // TODO: Check params
     PRINSEQPLUSPLUS(ch_samplesheet)
+    
+    ch_samplesheet
+        .multiMap { meta, reads ->
+            reads_ch: [ meta, reads ]
+            index_ch: [
+                meta,                              // reuse same meta — fine, since script ignores meta2 content
+                file("${meta.ref_genome}*.bt2")     // glob matches all 6 index files for this sample's ref genome
+            ]
+        }
+        .set { ch_for_align }
+
+    // ch_for_align.reads_ch.view()
+    // ch_for_align.index_ch.view()
+
+    ch_fasta = channel.of([ [:], [] ]).first() // create a channel with a single tuple of empty meta and empty fasta path, to be used in BOWTIE2_ALIGN
+
+    //
+    // MODULE: Exlcude host reads with Bowtie2
+    // TODO: Check params
+    // TODO: Test with single-end reads
+    BOWTIE2_ALIGN(ch_for_align.reads_ch, ch_for_align.index_ch, ch_fasta, true, true)
+
+    ch_reads_host_depleted = BOWTIE2_ALIGN.out.fastq.map {meta, reads ->
+        def r1 = null
+        def r2 = null
+
+        if (meta.single_end) {
+            r1 = reads
+        } else {
+            r1 = reads[0]
+            r2 = reads[1]
+        }
+
+        tuple(meta, r1, r2)
+    }
+
+
+    //
+    // MODULE: Assemble contigs with MEGAHIT
+    // TODO: Check params
+    MEGAHIT(ch_reads_host_depleted)
+
+    ch_contigs = MEGAHIT.out.contigs
+                            .multiMap { meta, contigs ->
+                                meta: meta
+                                contigs: contigs
+                            }
+
+    // ch_meta_long = ch_contigs.meta.collect()
+    ch_contigs_long = ch_contigs.contigs.collect()
+
+    //
+    // MODULE: Concatenate contigs using a local module
+    CONCATENATE_CONTIG_FILES(ch_contigs_long)
+
+
 
     //
     // Collate and save software versions
