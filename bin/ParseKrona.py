@@ -11,6 +11,8 @@ def find_taxon(hit, search_rank):
     try:
         while rank != search_rank:
             hit = hit.findParent()
+            if hit.attrs.get("name") == "Viruses":
+                return "Viruses"
             rank = hit.find("rank").find("val").text
         taxon = hit.attrs["name"]
     except:
