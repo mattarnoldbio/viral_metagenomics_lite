@@ -15,6 +15,7 @@ process EXTRACT_KRONA_TAXONOMY {
     output:
     tuple val(meta), path(contigs) , path("*all_virus_hits.csv"), emit: virus_hits
     tuple val(meta), path(contigs) , path("*_non_virus_hits.csv"), optional: true, emit: non_virus_hits
+    tuple val(meta), path(contigs) , path("*_no_virus_hits.csv"), optional: true, emit: no_virus_hits
 
     script:
     """

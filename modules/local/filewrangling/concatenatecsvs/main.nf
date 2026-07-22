@@ -7,18 +7,20 @@ process CONCATENATECSVS {
     conda "bioconda::pigz=2.3.4"
     input:
     path(csv_files)
+    val(db)
+    val(mode)
 
     output:
-    path("all_virus_hits.csv"), emit: all_virus_hits_csv
+    path("${db}_${mode}_virus_hits.csv"), emit: csv
 
     script:
     """
     csvs=(${csv_files})
 
-    touch all_virus_hits.csv
+    touch ${db}_${mode}_virus_hits.csv
 
     for csv in "\${csvs[@]}" ; do
-        tail -n+2 \${csv} >> all_virus_hits.csv
+        tail -n+2 \${csv} >> ${db}_${mode}_virus_hits.csv
     done
 
     """

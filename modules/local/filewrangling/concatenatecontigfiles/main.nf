@@ -20,7 +20,7 @@ process CONCATENATECONTIGFILES {
 
     for contigs_file in "\${contigs[@]}" ; do
         uncompressed_contigs=\${contigs_file%".gz"}
-        accession=\${contigs_file%".contigs.fa.gz"}
+        accession="\${contigs_file%%[._]*}"
         pigz -dc \$contigs_file > \$uncompressed_contigs
         cat \$uncompressed_contigs | sed "s/^>/>\${accession}|/" >> all_contigs${filename}.fa
     done

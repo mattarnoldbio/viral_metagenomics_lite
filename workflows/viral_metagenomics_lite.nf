@@ -11,13 +11,19 @@ include { BOWTIE2_BUILD                                             } from '../m
 include { BOWTIE2_ALIGN                                             } from '../modules/nf-core/bowtie2/align/main'
 include { MEGAHIT                                                   } from '../modules/nf-core/megahit/main'
 include { CONCATENATECONTIGFILES                                    } from '../modules/local/filewrangling/concatenatecontigfiles/main' 
-include { SPLITBLASTRESULT                                          } from '../modules/local/filewrangling/splitblastresult/main' 
+include { SPLITBLASTRESULT as SPLITBLASTRESULT_BLASTX               } from '../modules/local/filewrangling/splitblastresult/main' 
+include { SPLITBLASTRESULT as SPLITBLASTRESULT_BLASTN               } from '../modules/local/filewrangling/splitblastresult/main' 
 include { DIAMOND_BLASTX                                            } from '../modules/nf-core/diamond/blastx/main'
-include { KRONA_KTIMPORTBLAST                                       } from '../modules/local/kronatools/importblast/main'
-include { EXTRACT_KRONA_TAXONOMY                                    } from '../modules/local/extractkronataxonomy/main'
-include { CONCATENATECSVS                                           } from '../modules/local/filewrangling/concatenatecsvs/main'
-include { EXTRACTVIRUSCONTIGS                                       } from '../modules/local/filewrangling/extractviruscontigs/main'
+include { KRONA_KTIMPORTBLAST as KRONA_KTIMPORTBLAST_BLASTX         } from '../modules/local/kronatools/importblast/main'
+include { KRONA_KTIMPORTBLAST as KRONA_KTIMPORTBLAST_BLASTN         } from '../modules/local/kronatools/importblast/main'
+include { EXTRACT_KRONA_TAXONOMY as EXTRACT_KRONA_TAXONOMY_BLASTX   } from '../modules/local/extractkronataxonomy/main'
+include { EXTRACT_KRONA_TAXONOMY as EXTRACT_KRONA_TAXONOMY_BLASTN   } from '../modules/local/extractkronataxonomy/main'
+include { CONCATENATECSVS as CONCATENATECSVS_BLASTX                 } from '../modules/local/filewrangling/concatenatecsvs/main'
+include { CONCATENATECSVS as CONCATENATECSVS_BLASTN                 } from '../modules/local/filewrangling/concatenatecsvs/main'
+include { EXTRACTVIRUSCONTIGS as EXTRACTVIRUSCONTIGS_BLASTX         } from '../modules/local/filewrangling/extractviruscontigs/main'
+include { EXTRACTVIRUSCONTIGS as EXTRACTVIRUSCONTIGS_BLASTN         } from '../modules/local/filewrangling/extractviruscontigs/main'
 include { CONCATENATECONTIGFILES as  CONCATENATECONTIGFILES_BLASTX  } from '../modules/local/filewrangling/concatenatecontigfiles/main' 
+include { BLAST_BLASTN                                              } from '../modules/nf-core/blast/blastn/main'
 include { paramsSummaryMap                                          } from 'plugin/nf-schema'
 include { paramsSummaryMultiqc                                      } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { softwareVersionsToYAML                                    } from '../subworkflows/nf-core/utils_nfcore_pipeline'
@@ -112,7 +118,7 @@ workflow VIRAL_METAGENOMICS_LITE {
 
     // ch_meta_long = ch_contigs.meta.collect()
     ch_contigs_long = ch_contigs.contigs_.collect()
-    ch_contigs_long.view()
+
     //
     // MODULE: Concatenate contigs using a local module
     CONCATENATECONTIGFILES(ch_contigs_long, "")
@@ -154,62 +160,136 @@ workflow VIRAL_METAGENOMICS_LITE {
                         }
                         .groupTuple()
                         .map { sample_id, blast_results ->
-                                  def meta = [id: sample_id]//, db: "diamond"]
+                                  def meta = [id: sample_id, db: "diamond"]
                                tuple(meta, blast_results)
                                 }
     
     // MODULE: Split BLAST results into individual files for each sample
-    SPLITBLASTRESULT(ch_blast_results)
-    ch_split_blast_results = SPLITBLASTRESULT.out
-
+    SPLITBLASTRESULT_BLASTX(ch_blast_results)
+    ch_split_blastx_results = SPLITBLASTRESULT_BLASTX.out
+    // ch_split_blastx_results.view()
 
     //
     // MODULE: Make Krona plots to show taxonomic breakdown of each sample's BLAST results
-    KRONA_KTIMPORTBLAST(ch_split_blast_results, params.krona_db)
+    KRONA_KTIMPORTBLAST_BLASTX(ch_split_blastx_results, params.krona_db)
 
-    //ch_contigs.view()
-
-    ch_contigs_taxonomy = ch_contigs.contigs.join(KRONA_KTIMPORTBLAST.out.html) 
-
+    ch_contigs_taxonomy = ch_contigs.contigs
+        .map { meta, contigs -> tuple(meta.id, contigs) }
+        .join(
+            KRONA_KTIMPORTBLAST_BLASTX.out.html.map { meta, html -> tuple(meta.id, meta, html) }
+        )
+        .map { _id, contigs, meta, html -> tuple(meta, contigs, html) }
     //if legacy :
     //TODO: Add a parameter to choose between legacy and new taxonomy extraction
     //TODO: Add a parameter to choose between database and score filter for Krona taxonomy extraction
 
     // MODULE: Extract virus hits from Krona taxonomy results
-    EXTRACT_KRONA_TAXONOMY(ch_contigs_taxonomy, "diamond", 10)
+    EXTRACT_KRONA_TAXONOMY_BLASTX(ch_contigs_taxonomy, "diamond", 10)
 
-    EXTRACT_KRONA_TAXONOMY.out.virus_hits
+    EXTRACT_KRONA_TAXONOMY_BLASTX.out.virus_hits
         .set{ ch_virus_hits }
 
-    EXTRACT_KRONA_TAXONOMY.out.virus_hits
+    EXTRACT_KRONA_TAXONOMY_BLASTX.out.virus_hits
                         .map { _meta, _contigs, virus_hits ->
                             virus_hits
                         }
                         .collect()
                         .set { ch_all_virus_hits }
     
-    // MODULE: Concatenate .csv files from EXTRACT_KRONA_TAXONOMY to create a single .csv file for virus hits
-    CONCATENATECSVS(ch_all_virus_hits)
+    // MODULE: Concatenate .csv files from EXTRACT_KRONA_TAXONOMY_BLASTX to create a single .csv file for virus hits
+    CONCATENATECSVS_BLASTX(ch_all_virus_hits, "diamond", "all")
 
     // MODULE: Extract virus contigs from the original contigs file based on the virus hits .csv file
-    EXTRACTVIRUSCONTIGS(ch_virus_hits)
+    EXTRACTVIRUSCONTIGS_BLASTX(ch_virus_hits)
     
-    EXTRACTVIRUSCONTIGS.out.virus_contigs
+    EXTRACTVIRUSCONTIGS_BLASTX.out.virus_contigs
+        .set{ ch_all_virus_contigs }
+
+    ch_all_virus_contigs
         .map({ _meta, virus_contigs ->
             virus_contigs
         })
         .collect()
-        .set { ch_all_virus_contigs }
+        .set { ch_all_virus_contigs_flat }
 
-    // MODULE: Concatenate virus contigs from EXTRACTVIRUSCONTIGS to create a single .fa.gz file for virus contigs
-    CONCATENATECONTIGFILES_BLASTX(ch_all_virus_contigs, "_diamond_virus_hits")
+    // MODULE: Concatenate virus contigs from EXTRACTVIRUSCONTIGS_BLASTX to create a single .fa.gz file for virus contigs
+    CONCATENATECONTIGFILES_BLASTX(ch_all_virus_contigs_flat, "_diamond_virus_hits")
+        .map{ all_virus_contigs ->
+            def meta = [id: "all_virus_contigs"]
+            tuple(meta, all_virus_contigs)
 
-    // MODULE: Run BLASTN search on the virus hits against nt
+        }        
+        .set { ch_all_virus_contigs_fasta }
+
+
+    ch_blast_db = channel.fromPath(params.blast_db, checkIfExists: true)
+                        .map{
+                            db_path -> 
+                            def meta = [id: "blast_db"]
+
+                            tuple(meta, db_path)
+                        }
+
+    // MODULE: Run BLASTN search on the virus hits against nt    
+    BLAST_BLASTN(ch_all_virus_contigs_fasta, ch_blast_db, [], [], false)
+        
+    ch_blastn_results = BLAST_BLASTN.out.txt
+                        .flatMap{
+                            _meta, results ->
+                                results.splitCsv(sep: "\t")
+                                       .collect { row ->
+                                             def sample_id = row[0].split('\\|')[0]   // parse "sample" out of "sample|contig"
+                                             tuple(sample_id, row)
+                                            }
+                        }
+                        .groupTuple()
+                        .map { sample_id, blast_results ->
+                                  def meta = [id: sample_id, db: "blastn"]
+                               tuple(meta, blast_results)
+                                }
+
+    SPLITBLASTRESULT_BLASTN(ch_blastn_results)
+
+    SPLITBLASTRESULT_BLASTN.out
+        .map{ _meta, blast_results ->
+            def meta = [id: _meta.id, db: "blastn"]
+            tuple(meta, blast_results)
+        }
+        .set { ch_split_blastn_results }
+
+
+    KRONA_KTIMPORTBLAST_BLASTN(ch_split_blastn_results, params.krona_db)
+
+
+    ch_blast_contigs_taxonomy = ch_all_virus_contigs
+        .map { meta, contigs -> tuple(meta.id, contigs) }
+        .join(
+            KRONA_KTIMPORTBLAST_BLASTN.out.html.map { meta, html -> tuple(meta.id, meta, html) }
+        )
+        .map { _id, contigs, meta, html -> tuple(meta, contigs, html) }
+
+
+    //if legacy :
+    //TODO: Add a parameter to choose between legacy and new taxonomy extraction
+    //TODO: Add a parameter to choose between database and score filter for Krona taxonomy extraction
+
+    // MODULE: Extract virus hits from Krona taxonomy results
+    EXTRACT_KRONA_TAXONOMY_BLASTN(ch_blast_contigs_taxonomy, "blastn", 10)
+
+    EXTRACT_KRONA_TAXONOMY_BLASTN.out.non_virus_hits
+        .map{ _meta, _contigs, non_virus_hits ->
+            non_virus_hits
+        }
+        .collect()
+        .set{ ch_non_virus_hits }
+
+    ch_non_virus_hits.view()    
+
+    // MODULE: Concatenate .csv files from EXTRACT_KRONA_TAXONOMY_BLASTN to create a single .csv file for non-virus hits
+    CONCATENATECSVS_BLASTN(ch_non_virus_hits, "blastn", "non")
+
     
-    
-    //TODO: Concatenate .csv files from EXTRACT_KRONA_TAXONOMY to create a single .csv file for virus hits
-    //TODO: Grep the sequences for the virus hits from contigs (Probably quicker to do on individual library files rather than the concatenated contigs file)
-    //TODO: Run the BLASTN search on the virus hits against nt
+
     //TODO: classify the BLASTN results
 
     //

@@ -20,7 +20,7 @@ process KRONA_KTIMPORTBLAST {
 
     script:
     def args   = task.ext.args   ?: ''
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    def prefix = task.ext.prefix ?: "${meta.id}_${meta.db}"
     """
     ktImportBLAST \\
         $args \\
@@ -35,7 +35,7 @@ process KRONA_KTIMPORTBLAST {
     """
 
     stub:
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    def prefix = task.ext.prefix ?: "${meta.id}_${meta.db}"
     """
     touch ${prefix}.html
 

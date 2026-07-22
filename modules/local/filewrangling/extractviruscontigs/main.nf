@@ -24,7 +24,7 @@ process EXTRACTVIRUSCONTIGS {
 
     for hit in \$virus_hits; do # For each hit
         contig=\$(grep "\${hit} " \$uncompressed_contigs -A 1) 
-        echo "\$contig" | sed "s/^>/>${meta.id}|/" >> ${meta.id}_diamond_virus_hits.fa 
+        echo "\$contig" >> ${meta.id}_diamond_virus_hits.fa 
     done
 
     pigz ${meta.id}_diamond_virus_hits.fa
