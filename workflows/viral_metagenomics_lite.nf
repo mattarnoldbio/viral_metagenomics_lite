@@ -3,18 +3,25 @@
     IMPORT MODULES / SUBWORKFLOWS / FUNCTIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-include { FASTQC                    } from '../modules/nf-core/fastqc/main'
-include { MULTIQC                   } from '../modules/nf-core/multiqc/main'
-include { TRIMGALORE                } from '../modules/nf-core/trimgalore/main'
-include { PRINSEQPLUSPLUS           } from '../modules/nf-core/prinseqplusplus/main'
-include { BOWTIE2_BUILD             } from '../modules/nf-core/bowtie2/build/main'
-include { BOWTIE2_ALIGN             } from '../modules/nf-core/bowtie2/align/main'
-include { MEGAHIT                   } from '../modules/nf-core/megahit/main'
-include { CONCATENATE_CONTIG_FILES  } from '../modules/local/concatenate_contig_files/main' 
-include { paramsSummaryMap          } from 'plugin/nf-schema'
-include { paramsSummaryMultiqc      } from '../subworkflows/nf-core/utils_nfcore_pipeline'
-include { softwareVersionsToYAML    } from '../subworkflows/nf-core/utils_nfcore_pipeline'
-include { methodsDescriptionText    } from '../subworkflows/local/utils_nfcore_viral_metagenomics_lite_pipeline'
+include { FASTQC                                                    } from '../modules/nf-core/fastqc/main'
+include { MULTIQC                                                   } from '../modules/nf-core/multiqc/main'
+include { TRIMGALORE                                                } from '../modules/nf-core/trimgalore/main'
+include { PRINSEQPLUSPLUS                                           } from '../modules/nf-core/prinseqplusplus/main'
+include { BOWTIE2_BUILD                                             } from '../modules/nf-core/bowtie2/build/main'
+include { BOWTIE2_ALIGN                                             } from '../modules/nf-core/bowtie2/align/main'
+include { MEGAHIT                                                   } from '../modules/nf-core/megahit/main'
+include { CONCATENATECONTIGFILES                                    } from '../modules/local/filewrangling/concatenatecontigfiles/main' 
+include { SPLITBLASTRESULT                                          } from '../modules/local/filewrangling/splitblastresult/main' 
+include { DIAMOND_BLASTX                                            } from '../modules/nf-core/diamond/blastx/main'
+include { KRONA_KTIMPORTBLAST                                       } from '../modules/local/kronatools/importblast/main'
+include { EXTRACT_KRONA_TAXONOMY                                    } from '../modules/local/extractkronataxonomy/main'
+include { CONCATENATECSVS                                           } from '../modules/local/filewrangling/concatenatecsvs/main'
+include { EXTRACTVIRUSCONTIGS                                       } from '../modules/local/filewrangling/extractviruscontigs/main'
+include { CONCATENATECONTIGFILES as  CONCATENATECONTIGFILES_BLASTX  } from '../modules/local/filewrangling/concatenatecontigfiles/main' 
+include { paramsSummaryMap                                          } from 'plugin/nf-schema'
+include { paramsSummaryMultiqc                                      } from '../subworkflows/nf-core/utils_nfcore_pipeline'
+include { softwareVersionsToYAML                                    } from '../subworkflows/nf-core/utils_nfcore_pipeline'
+include { methodsDescriptionText                                    } from '../subworkflows/local/utils_nfcore_viral_metagenomics_lite_pipeline'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -45,13 +52,15 @@ workflow VIRAL_METAGENOMICS_LITE {
     // MODULE: Trim adapters and low quality bases with Trim Galore
     // TODO: Check params
     TRIMGALORE(ch_samplesheet)
+    ch_trimmed = TRIMGALORE.out.reads
 
     //
     // MODULE: Remove PCR duplicates and low quality reads with PRINSEQ++
     // TODO: Check params
-    PRINSEQPLUSPLUS(ch_samplesheet)
+    PRINSEQPLUSPLUS(ch_trimmed)
+    ch_dedup = PRINSEQPLUSPLUS.out.good_reads
     
-    ch_samplesheet
+    ch_dedup
         .multiMap { meta, reads ->
             reads_ch: [ meta, reads ]
             index_ch: [
@@ -92,20 +101,116 @@ workflow VIRAL_METAGENOMICS_LITE {
     // TODO: Check params
     MEGAHIT(ch_reads_host_depleted)
 
-    ch_contigs = MEGAHIT.out.contigs
-                            .multiMap { meta, contigs ->
-                                meta: meta
-                                contigs: contigs
-                            }
+    MEGAHIT.out.contigs
+               .multiMap { meta, contigs ->
+                    meta: meta
+                    contigs: [ [id: meta.id], contigs ]
+                    contigs_: contigs
+                }
+                .set { ch_contigs }
+
 
     // ch_meta_long = ch_contigs.meta.collect()
-    ch_contigs_long = ch_contigs.contigs.collect()
-
+    ch_contigs_long = ch_contigs.contigs_.collect()
+    ch_contigs_long.view()
     //
     // MODULE: Concatenate contigs using a local module
-    CONCATENATE_CONTIG_FILES(ch_contigs_long)
+    CONCATENATECONTIGFILES(ch_contigs_long, "")
+
+    ch_all_contigs = CONCATENATECONTIGFILES.out.map{ all_contigs -> 
+        def meta = [id: "all_contigs"]
+        tuple (meta, all_contigs)
+    }
+    ch_diamond_db = channel.fromPath(params.diamond_db, checkIfExists: true)
+                            .map{
+                                db_path -> 
+                                def meta = [id: "blast_db"]
+
+                                tuple(meta, db_path)
+                            }
 
 
+    //
+    // MODULE: Search contigs against reference DB with Diamond BLASTX
+    DIAMOND_BLASTX(ch_all_contigs, ch_diamond_db ,'txt', '')
+
+
+    // ch_krona_db = channel.fromPath(params.krona_db, checkIfExists: true)
+    //                     .map{
+    //                         db_path -> 
+    //                         def meta = [id: "blast_db"]
+
+    //                         tuple(meta, db_path)
+    //                     }
+
+    ch_blast_results = DIAMOND_BLASTX.out.txt
+                        .flatMap{
+                            _meta, results ->
+                                results.splitCsv(sep: "\t")
+                                       .collect { row ->
+                                             def sample_id = row[0].split('\\|')[0]   // parse "sample" out of "sample|contig"
+                                             tuple(sample_id, row)
+                                            }
+                        }
+                        .groupTuple()
+                        .map { sample_id, blast_results ->
+                                  def meta = [id: sample_id]//, db: "diamond"]
+                               tuple(meta, blast_results)
+                                }
+    
+    // MODULE: Split BLAST results into individual files for each sample
+    SPLITBLASTRESULT(ch_blast_results)
+    ch_split_blast_results = SPLITBLASTRESULT.out
+
+
+    //
+    // MODULE: Make Krona plots to show taxonomic breakdown of each sample's BLAST results
+    KRONA_KTIMPORTBLAST(ch_split_blast_results, params.krona_db)
+
+    //ch_contigs.view()
+
+    ch_contigs_taxonomy = ch_contigs.contigs.join(KRONA_KTIMPORTBLAST.out.html) 
+
+    //if legacy :
+    //TODO: Add a parameter to choose between legacy and new taxonomy extraction
+    //TODO: Add a parameter to choose between database and score filter for Krona taxonomy extraction
+
+    // MODULE: Extract virus hits from Krona taxonomy results
+    EXTRACT_KRONA_TAXONOMY(ch_contigs_taxonomy, "diamond", 10)
+
+    EXTRACT_KRONA_TAXONOMY.out.virus_hits
+        .set{ ch_virus_hits }
+
+    EXTRACT_KRONA_TAXONOMY.out.virus_hits
+                        .map { _meta, _contigs, virus_hits ->
+                            virus_hits
+                        }
+                        .collect()
+                        .set { ch_all_virus_hits }
+    
+    // MODULE: Concatenate .csv files from EXTRACT_KRONA_TAXONOMY to create a single .csv file for virus hits
+    CONCATENATECSVS(ch_all_virus_hits)
+
+    // MODULE: Extract virus contigs from the original contigs file based on the virus hits .csv file
+    EXTRACTVIRUSCONTIGS(ch_virus_hits)
+    
+    EXTRACTVIRUSCONTIGS.out.virus_contigs
+        .map({ _meta, virus_contigs ->
+            virus_contigs
+        })
+        .collect()
+        .set { ch_all_virus_contigs }
+
+    // MODULE: Concatenate virus contigs from EXTRACTVIRUSCONTIGS to create a single .fa.gz file for virus contigs
+    CONCATENATECONTIGFILES_BLASTX(ch_all_virus_contigs, "_diamond_virus_hits")
+
+    // MODULE: Run BLASTN search on the virus hits against nt
+    
+    
+    //TODO: Concatenate .csv files from EXTRACT_KRONA_TAXONOMY to create a single .csv file for virus hits
+    //TODO: Grep the sequences for the virus hits from contigs (Probably quicker to do on individual library files rather than the concatenated contigs file)
+    //TODO: Run the BLASTN search on the virus hits against nt
+    //TODO: classify the BLASTN results
 
     //
     // Collate and save software versions
