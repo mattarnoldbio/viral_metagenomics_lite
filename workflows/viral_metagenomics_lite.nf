@@ -19,11 +19,13 @@ include { KRONA_KTIMPORTBLAST as KRONA_KTIMPORTBLAST_BLASTN         } from '../m
 include { EXTRACT_KRONA_TAXONOMY as EXTRACT_KRONA_TAXONOMY_BLASTX   } from '../modules/local/extractkronataxonomy/main'
 include { EXTRACT_KRONA_TAXONOMY as EXTRACT_KRONA_TAXONOMY_BLASTN   } from '../modules/local/extractkronataxonomy/main'
 include { CONCATENATECSVS as CONCATENATECSVS_BLASTX                 } from '../modules/local/filewrangling/concatenatecsvs/main'
-include { CONCATENATECSVS as CONCATENATECSVS_BLASTN                 } from '../modules/local/filewrangling/concatenatecsvs/main'
+include { CONCATENATECSVS as CONCATENATECSVS_BLASTN_NON             } from '../modules/local/filewrangling/concatenatecsvs/main'
+include { CONCATENATECSVS as CONCATENATECSVS_BLASTN_ALL             } from '../modules/local/filewrangling/concatenatecsvs/main'
 include { EXTRACTVIRUSCONTIGS as EXTRACTVIRUSCONTIGS_BLASTX         } from '../modules/local/filewrangling/extractviruscontigs/main'
 include { EXTRACTVIRUSCONTIGS as EXTRACTVIRUSCONTIGS_BLASTN         } from '../modules/local/filewrangling/extractviruscontigs/main'
 include { CONCATENATECONTIGFILES as  CONCATENATECONTIGFILES_BLASTX  } from '../modules/local/filewrangling/concatenatecontigfiles/main' 
 include { BLAST_BLASTN                                              } from '../modules/nf-core/blast/blastn/main'
+include { FILTERHITDATA                                             } from '../modules/local/filewrangling/filterhitdata/main'
 include { paramsSummaryMap                                          } from 'plugin/nf-schema'
 include { paramsSummaryMultiqc                                      } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { softwareVersionsToYAML                                    } from '../subworkflows/nf-core/utils_nfcore_pipeline'
@@ -198,6 +200,8 @@ workflow VIRAL_METAGENOMICS_LITE {
     
     // MODULE: Concatenate .csv files from EXTRACT_KRONA_TAXONOMY_BLASTX to create a single .csv file for virus hits
     CONCATENATECSVS_BLASTX(ch_all_virus_hits, "diamond", "all")
+        .csv
+        .set{ ch_all_virus_hits_diamond }
 
     // MODULE: Extract virus contigs from the original contigs file based on the virus hits .csv file
     EXTRACTVIRUSCONTIGS_BLASTX(ch_virus_hits)
@@ -213,7 +217,7 @@ workflow VIRAL_METAGENOMICS_LITE {
         .set { ch_all_virus_contigs_flat }
 
     // MODULE: Concatenate virus contigs from EXTRACTVIRUSCONTIGS_BLASTX to create a single .fa.gz file for virus contigs
-    CONCATENATECONTIGFILES_BLASTX(ch_all_virus_contigs_flat, "_diamond_virus_hits")
+    CONCATENATECONTIGFILES_BLASTX(ch_all_virus_contigs_flat, "_hits")
         .map{ all_virus_contigs ->
             def meta = [id: "all_virus_contigs"]
             tuple(meta, all_virus_contigs)
@@ -283,14 +287,31 @@ workflow VIRAL_METAGENOMICS_LITE {
         .collect()
         .set{ ch_non_virus_hits }
 
-    ch_non_virus_hits.view()    
+    EXTRACT_KRONA_TAXONOMY_BLASTN.out.virus_hits
+        .map{ _meta, _contigs, virus_hits ->
+            virus_hits
+        }
+        .collect()
+        .set{ ch_virus_hits_blastn }
+
+    //ch_non_virus_hits.view()    
 
     // MODULE: Concatenate .csv files from EXTRACT_KRONA_TAXONOMY_BLASTN to create a single .csv file for non-virus hits
-    CONCATENATECSVS_BLASTN(ch_non_virus_hits, "blastn", "non")
+    CONCATENATECSVS_BLASTN_NON(ch_non_virus_hits, "blastn", "non")
+        .set{ ch_non_virus_hits_blastn }
 
-    
+    CONCATENATECSVS_BLASTN_ALL(ch_virus_hits_blastn, "blastn", "all")
+        .set{ ch_all_virus_hits_blastn }
 
-    //TODO: classify the BLASTN results
+
+    FILTERHITDATA(  
+                    ch_all_virus_hits_diamond, 
+                    ch_all_virus_hits_blastn,   
+                    ch_non_virus_hits_blastn,
+                    ch_all_virus_contigs_fasta,
+                    params.min_contig_length
+                    
+                )
 
     //
     // Collate and save software versions

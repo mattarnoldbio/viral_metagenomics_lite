@@ -41,6 +41,11 @@
                     "description": "Path to the BLAST database file.",
                     "help_text": "Pre-built BLAST database used for the BLAST search step."
                 },
+                "min_contig_length": {
+                    "type": "integer",
+                    "description": "Minimum contig length for filtering hits.",
+                    "help_text": "Contigs shorter than this value will be filtered out."
+                },
                 "outdir": {
                     "type": "string",
                     "format": "directory-path",
