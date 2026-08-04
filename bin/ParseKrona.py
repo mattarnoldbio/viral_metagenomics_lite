@@ -19,6 +19,19 @@ def find_taxon(hit, search_rank):
         taxon = "none"
     return taxon
 
+# Old version of find_taxon function, pre suggestion from Claude
+# def find_taxon(hit, search_rank):
+#     rank = ""
+#     taxon = ""
+#     try:
+#         while rank != search_rank:
+#             hit = hit.findParent()
+#             rank = hit.find("rank").find("val").text
+#         taxon = hit.attrs["name"]
+#     except:
+#         taxon = "none"
+#     return taxon
+
 
 if __name__ == "__main__":
 

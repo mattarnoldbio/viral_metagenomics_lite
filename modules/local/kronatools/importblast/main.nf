@@ -12,7 +12,7 @@ process KRONA_KTIMPORTBLAST {
     path db
 
     output:
-    tuple val(meta), path("*.html"), emit: html
+    tuple val(meta), path("${meta.id}.${meta.db}.krona.html"), path("${meta.id}.${meta.db}.krona.html.files"), emit: html
     path "versions.yml"            , emit: versions
 
     when:
@@ -20,13 +20,15 @@ process KRONA_KTIMPORTBLAST {
 
     script:
     def args   = task.ext.args   ?: ''
-    def prefix = task.ext.prefix ?: "${meta.id}_${meta.db}"
+    def prefix = task.ext.prefix ?: "${meta.id}.${meta.db}.krona"
     """
     ktImportBLAST \\
         $args \\
         -o ${prefix}.html \\
         $blast_output \\
         -tax $db
+
+    touch ${meta.id}.${meta.db}.krona.html.files
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -35,7 +37,7 @@ process KRONA_KTIMPORTBLAST {
     """
 
     stub:
-    def prefix = task.ext.prefix ?: "${meta.id}_${meta.db}"
+    def prefix = task.ext.prefix ?: "${meta.id}.${meta.db}.krona"
     """
     touch ${prefix}.html
 

@@ -178,9 +178,9 @@ workflow VIRAL_METAGENOMICS_LITE {
     ch_contigs_taxonomy = ch_contigs.contigs
         .map { meta, contigs -> tuple(meta.id, contigs) }
         .join(
-            KRONA_KTIMPORTBLAST_BLASTX.out.html.map { meta, html -> tuple(meta.id, meta, html) }
+            KRONA_KTIMPORTBLAST_BLASTX.out.html.map { meta, html, metadata_dir -> tuple(meta.id, meta, html, metadata_dir) }
         )
-        .map { _id, contigs, meta, html -> tuple(meta, contigs, html) }
+        .map { _id, contigs, meta, html, metadata_dir -> tuple(meta, contigs, html, metadata_dir) }
     //if legacy :
     //TODO: Add a parameter to choose between legacy and new taxonomy extraction
     //TODO: Add a parameter to choose between database and score filter for Krona taxonomy extraction
@@ -268,9 +268,9 @@ workflow VIRAL_METAGENOMICS_LITE {
     ch_blast_contigs_taxonomy = ch_all_virus_contigs
         .map { meta, contigs -> tuple(meta.id, contigs) }
         .join(
-            KRONA_KTIMPORTBLAST_BLASTN.out.html.map { meta, html -> tuple(meta.id, meta, html) }
+            KRONA_KTIMPORTBLAST_BLASTN.out.html.map { meta, html, metadata_dir -> tuple(meta.id, meta, html, metadata_dir) }
         )
-        .map { _id, contigs, meta, html -> tuple(meta, contigs, html) }
+        .map { _id, contigs, meta, html, metadata_dir -> tuple(meta, contigs, html, metadata_dir) }
 
 
     //if legacy :
