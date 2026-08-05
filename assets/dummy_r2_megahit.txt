@@ -1,0 +1,1 @@
+The megahit nf-core module requires existing files to be specified for both R1 and R2, even when running on a single-end library. I don't know why. This file exists so when `meta.single_end == true` there is a file to supply to the R2 argument.
