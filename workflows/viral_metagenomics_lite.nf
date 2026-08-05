@@ -95,6 +95,7 @@ workflow VIRAL_METAGENOMICS_LITE {
 
         if (meta.single_end) {
             r1 = reads
+            r2 = "/Users/arno01m/GitHub_repos/viral_metagenomics_lite/assets/samplesheet.csv" // dummy value for r2, since MEGAHIT expects a value for r2 even if it's not used
         } else {
             r1 = reads[0]
             r2 = reads[1]
@@ -103,7 +104,7 @@ workflow VIRAL_METAGENOMICS_LITE {
         tuple(meta, r1, r2)
     }
 
-
+    ch_reads_host_depleted.view()
     //
     // MODULE: Assemble contigs with MEGAHIT
     // TODO: Check params
