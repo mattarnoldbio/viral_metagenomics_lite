@@ -95,7 +95,7 @@ workflow VIRAL_METAGENOMICS_LITE {
 
         if (meta.single_end) {
             r1 = reads
-            r2 = params.input // dummy value for r2, since MEGAHIT expects a value for r2 even if it's not used
+            r2 =file("${projectDir}/${params.dummy_megahit_R2}")// dummy value for r2, since MEGAHIT expects a value for r2 even if it's not used
         } else {
             r1 = reads[0]
             r2 = reads[1]

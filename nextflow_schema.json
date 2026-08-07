@@ -63,6 +63,10 @@
                     "type": "string",
                     "description": "MultiQC report title. Printed as page header, used for filename if not otherwise specified.",
                     "fa_icon": "fas fa-file-signature"
+                },
+                "dummy_megahit_R2": {
+                    "format": "file-path",
+                    "description": "Dummy parameter for Megahit R2 file when meta.single_end == true."
                 }
             }
         },
