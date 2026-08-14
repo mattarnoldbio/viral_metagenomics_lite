@@ -154,14 +154,14 @@ output {
     combined_contigs  { path 'contigs/combined_contigs' }
     all_virus_contigs { path 'contigs/all_virus_contigs' }
 
-    diamond_raw                     { path 'db_search_results' }
-    diamond_separate                { path 'db_search_results' }
-    diamond_combined                { path 'db_search_results' }
-    blastn_combined                 { path 'db_search_results' }
-    blastn_separate_virus_hits      { path 'db_search_results' }
-    blastn_separate_non_virus_hits  { path 'db_search_results' }
-    blastn_combined_virus_hits      { path 'db_search_results' }
-    blastn_combined_non_virus_hits  { path 'db_search_results' }
+    diamond_raw                     { path 'db_search_results/nr' }
+    diamond_separate                { path 'db_search_results/nr' }
+    diamond_combined                { path 'db_search_results/nr' }
+    blastn_combined                 { path 'db_search_results/nt' }
+    blastn_separate_virus_hits      { path 'db_search_results/nt' }
+    blastn_separate_non_virus_hits  { path 'db_search_results/nt' }
+    blastn_combined_virus_hits      { path 'db_search_results/nt' }
+    blastn_combined_non_virus_hits  { path 'db_search_results/nt' }
 
     final_filtered_virus_hits     { path 'final_results' }
     final_filtered_non_virus_hits { path 'final_results' }
