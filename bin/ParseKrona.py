@@ -96,7 +96,7 @@ if __name__ == "__main__":
         os.system("touch {}/{}_{}_no_virus_hits.txt".format(output_dir, which_db, accession))
         print("No virus hits found for {}".format(accession))
         if which_db != "blastn":
-            exit(1)
+            exit(0)
 
     if len(virus_hits) > 0:
         if not read_mode:
