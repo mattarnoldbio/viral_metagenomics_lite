@@ -25,5 +25,8 @@ process FILTERHITDATA {
 
     FilterDiamondHits.py -d ./ --diamond_cutoff 0 --blast_cutoff 0 --min_contig_length $min_contig_length --filter_vertebrate
 
+    touch finalvertebrate_viral_hits.csv
+    touch finalnon_vertebrate_viral_hits.csv
+
     """
 }

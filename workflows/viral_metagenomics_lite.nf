@@ -89,20 +89,21 @@ workflow VIRAL_METAGENOMICS_LITE {
     // TODO: Test with single-end reads
     BOWTIE2_ALIGN(ch_for_align.reads_ch, ch_for_align.index_ch, ch_fasta, true, true)
 
-    ch_reads_host_depleted = BOWTIE2_ALIGN.out.fastq.map {meta, reads ->
-        def r1 = null
-        def r2 = null
+    ch_reads_host_depleted = BOWTIE2_ALIGN.out.fastq
+                            .map {meta, reads ->
+                                        def r1 = null
+                                        def r2 = null
 
-        if (meta.single_end) {
-            r1 = reads
-            r2 =file("${projectDir}/${params.dummy_megahit_R2}")// dummy value for r2, since MEGAHIT expects a value for r2 even if it's not used
-        } else {
-            r1 = reads[0]
-            r2 = reads[1]
-        }
+                                        if (meta.single_end) {
+                                            r1 = reads
+                                            r2 =file("${projectDir}/${params.dummy_megahit_R2}")// dummy value for r2, since MEGAHIT expects a value for r2 even if it's not used
+                                        } else {
+                                            r1 = reads[0]
+                                            r2 = reads[1]
+                                        }
 
-        tuple(meta, r1, r2)
-    }
+                                        tuple(meta, r1, r2)
+                                    }
 
 
     //
@@ -369,8 +370,43 @@ workflow VIRAL_METAGENOMICS_LITE {
             ]
         }
     )
-    emit:multiqc_report = MULTIQC.out.report.map { _meta, report -> [report] }.toList() // channel: /path/to/multiqc_report.html
-    versions       = ch_versions                 // channel: [ path(versions.yml) ]
+
+    emit:
+         multiqc_report = MULTIQC.out.report.map { _meta, report -> [report] }.toList() // channel: /path/to/multiqc_report.html
+        versions       = ch_versions                                                    // channel: [ path(versions.yml) ]
+
+        // preprocessed_reads
+        trimmed_and_deduplicated_reads = PRINSEQPLUSPLUS.out.good_reads
+        host_depleted_reads            = BOWTIE2_ALIGN.out.fastq
+
+        // contigs
+        separate_contigs  = MEGAHIT.out.contigs
+        combined_contigs  = CONCATENATECONTIGFILES.out
+        all_virus_contigs = CONCATENATECONTIGFILES_BLASTX.out
+
+        // db_search_results
+        diamond_raw                     = DIAMOND_BLASTX.out.txt
+        diamond_separate                = EXTRACT_KRONA_TAXONOMY_BLASTX.out.virus_hits
+                                                .map{ _meta, _contigs, virus_hits ->
+                                                    virus_hits
+                                                }
+        diamond_combined                = CONCATENATECSVS_BLASTX.out.csv
+        blastn_combined                 = BLAST_BLASTN.out.txt
+        blastn_separate_virus_hits      = EXTRACT_KRONA_TAXONOMY_BLASTN.out.virus_hits
+                                                .map{ _meta, _contigs, virus_hits ->
+                                                    virus_hits
+                                                }
+        blastn_separate_non_virus_hits  = EXTRACT_KRONA_TAXONOMY_BLASTN.out.non_virus_hits
+                                                .map{ _meta, _contigs, non_virus_hits ->
+                                                    non_virus_hits
+                                                }
+        blastn_combined_virus_hits      = CONCATENATECSVS_BLASTN_ALL.out.csv
+        blastn_combined_non_virus_hits  = CONCATENATECSVS_BLASTN_NON.out.csv
+
+        // final_results
+        final_filtered_virus_hits     = FILTERHITDATA.out.vertebrate_virus_hits
+        final_filtered_non_virus_hits = FILTERHITDATA.out.non_vertebrate_virus_hits
+
 }
 
 /*
