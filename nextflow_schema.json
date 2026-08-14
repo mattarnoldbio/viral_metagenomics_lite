@@ -25,7 +25,7 @@
                 },
                 "diamond_db": {
                     "type": "string",
-                    "format": "file-path",
+
                     "description": "Path to the DIAMOND database file for blastx search.",
                     "help_text": "Pre-built DIAMOND database (.dmnd) used for the blastx homology search step."
                 },
