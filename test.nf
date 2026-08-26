@@ -1,6 +1,6 @@
 include { ASSIGN_TAXONOMY } from './modules/local/taxonomyassignment/main.nf'
 
-workflow TEST {
+workflow  {
     
     main:
     ASSIGN_TAXONOMY (
