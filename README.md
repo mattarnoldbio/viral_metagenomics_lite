@@ -109,6 +109,27 @@ blast_db: '/path/to/nt'
 min_contig_length: 1000
 ```
 
+> [!IMPORTANT]
+> In newer Nextflow versions, non-string CLI values are not always parsed reliably from the command line. In practice, settings such as `--local_max_cpus`, `--local_max_memory`, `--min_contig_length`, and other numeric or typed values are usually best provided in a YAML/JSON params file rather than passed directly on the CLI.
+>
+> For example, if you need to set the minimum contig length or memory/thread limits, prefer:
+>
+> ```bash
+> nextflow run mattarnoldbio/viral_metagenomics_lite \
+>   -profile docker \
+>   -params-file params.yaml
+> ```
+>
+> with entries such as:
+>
+> ```yaml
+> local_max_cpus: 10
+> local_max_memory: '24.GB'
+> min_contig_length: 1000
+> ```
+>
+> This avoids problems caused by the CLI treating some values as strings or otherwise failing to coerce them into the expected types.
+
 ### Output publishing modes
 
 The pipeline exposes Nextflow's `publish_dir_mode` option, which controls how output files are written to the output directory. This can be set on the command line as:
