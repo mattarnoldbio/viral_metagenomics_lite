@@ -23,6 +23,18 @@
                     "help_text": "You will need to create a design file with information about the samples in your experiment before running the pipeline. Use this parameter to specify its location. It has to be a comma-separated file with 3 columns, and a header row.",
                     "fa_icon": "fas fa-file-csv"
                 },
+                "local_max_cpus": {
+                    "type": "integer",
+                    "description": "Maximum number of CPUs any single task may request on the local executor.",
+                    "default": 16,
+                    "hidden": true
+                },
+                "local_max_memory": {
+                    "type": "string",
+                    "description": "Maximum memory any single task may request on the local executor (e.g. '64.GB').",
+                    "default": "64.GB",
+                    "hidden": true
+                },
                 "diamond_db": {
                     "type": "string",
 
