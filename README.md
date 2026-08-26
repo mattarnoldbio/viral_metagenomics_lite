@@ -64,7 +64,14 @@ The pipeline will auto-detect paired-end versus single-end reads from the file i
 
 For host depletion, give the common prefix used to build the Bowtie2 index, e.g. `/path/to/host_index/human_hg38`. The pipeline looks for files matching `${ref_genome}*.bt2`, so values like `/path/to/host_index/human_hg38` are correct, while a full filename such as `/path/to/host_index/human_hg38.1.bt2` would not be appropriate.
 
-The BLAST database is also specified as a basename/prefix rather than a single file. For example, if your nt database exists as `/path/to/nt.nhr`, `/path/to/nt.nin`, `/path/to/nt.nsq`, etc., then pass `--blast_db /path/to/nt` rather than a full file path like `/path/to/nt.nsq`. In contrast, `--diamond_db` should point to the actual database file, usually ending in `.dmnd`.
+The BLAST database is also specified as a basename/prefix rather than a single file. For example, if your nt database exists as `/path/to/nt.nhr`, `/path/to/nt.nin`, `/path/to/nt.nsq`, etc., then pass `--blast_db /path/to/nt` rather than a full file path like `/path/to/nt.nsq`.
+
+The Diamond search accepts a protein database in either of two forms:
+
+- a native DIAMOND database file such as `/path/to/nr.dmnd`, or
+- a BLAST protein index/prefix such as `/path/to/nr` when the database consists of files like `nr.pal`, `nr.00`, `nr.01`, or `nr.phr`/`nr.pin`/`nr.psq`.
+
+This flexibility is useful if you already have a BLAST-formatted protein database available but do not want to reformat it into a separate `.dmnd` file.
 
 ## Running the pipeline
 
@@ -85,7 +92,7 @@ The most relevant arguments to specify are:
 
 - `--input`: path to the sample sheet CSV
 - `--outdir`: results output directory
-- `--diamond_db`: full path to the DIAMOND database file, usually ending in `.dmnd`
+- `--diamond_db`: full path to a Diamond database file ending in `.dmnd`, or a BLAST-formatted protein database prefix such as `/path/to/nr` (for example, `nr.pal` or `nr.phr`/`nr.pin`/`nr.psq`)
 - `--krona_db`: path to the Krona taxonomy database used to assign taxonomic labels
 - `--blast_db`: BLAST database prefix/basename, e.g. `/path/to/nt` for an nt database whose files are `/path/to/nt.nhr`, `/path/to/nt.nin`, `/path/to/nt.nsq`, etc.
 - `--min_contig_length`: minimum contig length retained after filtering
