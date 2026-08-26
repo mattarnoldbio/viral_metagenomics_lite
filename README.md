@@ -14,60 +14,114 @@
 
 ## Introduction
 
-**mattarnoldbio/viral_metagenomics_lite** is a bioinformatics pipeline that ...
+**mattarnoldbio/viral_metagenomics_lite** is a lightweight metagenomics workflow for identifying viral contigs from short-read sequencing data. It takes FASTQ samples, runs read quality checks and trimming, removes host reads using a Bowtie2 index, assembles contigs with MEGAHIT, searches contigs against protein and nucleotide databases, classifies hits with Krona, and filters the final set of viral and non-viral hit calls into a clean output directory.
 
-<!-- TODO nf-core:
-   Complete this sentence with a 2-3 sentence summary of what types of data the pipeline ingests, a brief overview of the
-   major pipeline sections and the types of output it produces. You're giving an overview to someone new
-   to nf-core here, in 15-20 seconds. For an example, see https://github.com/nf-core/rnaseq/blob/master/README.md#introduction
--->
+The pipeline is designed for a typical viromics or virus-discovery workflow in which the user provides a samplesheet of raw read files together with host depletion references and pre-built sequence databases. It produces QC summaries, trimmed/deduplicated reads, host-depleted reads, assembled contigs, taxonomy plots, and filtered hit tables for downstream interpretation.
 
-<!-- TODO nf-core: Include a figure that guides the user through the major workflow steps. Many nf-core
-     workflows use the "tube map" design for that. See https://nf-co.re/docs/community/brand/workflow-schematics#examples for examples.   -->
-<!-- TODO nf-core: Fill in short bullet-pointed list of the default steps in the pipeline -->1. Read QC ([`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))2. Present QC for raw reads ([`MultiQC`](http://multiqc.info/))
+### Default workflow steps
 
-## Usage
+1. Read QC with FastQC
+2. Adapter trimming and quality filtering with Trim Galore
+3. Duplicate/artifact filtering with PRINSEQ++
+4. Host read depletion using Bowtie2 against a per-sample reference index
+5. Assembly of cleaned reads into contigs with MEGAHIT
+6. Protein homology search against a DIAMOND database
+7. Nucleotide search against a BLAST database
+8. Taxonomic assignment and Krona plot generation
+9. Virus-hit extraction and contig filtering
+10. MultiQC summary report generation
+
+## Requirements
+
+Before running the pipeline, you need:
+
+- A samplesheet listing sample IDs and FASTQ file locations
+- A Bowtie2 host-reference index prefix for host depletion (`ref_genome` in the samplesheet)
+- A DIAMOND database for protein search (`--diamond_db`)
+- A Krona database for taxonomy plots (`--krona_db`)
+- A BLAST nucleotide database for confirmatory nt search (`--blast_db`)
+- An output directory (`--outdir`)
 
 > [!NOTE]
-> If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/get_started/environment_setup/overview) on how to set-up Nextflow. Make sure to [test your setup](https://nf-co.re/docs/get_started/run-your-first-pipeline) with `-profile test` before running the workflow on actual data.
+> If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/get_started/environment_setup/overview) on how to set up Nextflow. Make sure to test your setup before running the workflow on real data.
 
-<!-- TODO nf-core: Describe the minimum required steps to execute the pipeline, e.g. how to prepare samplesheets.
-     Explain what rows and columns represent. For instance (please edit as appropriate):
+## Samplesheet format
 
-First, prepare a samplesheet with your input data that looks as follows:
-
-`samplesheet.csv`:
+Create a CSV samplesheet with at least these columns:
 
 ```csv
-sample,fastq_1,fastq_2
-CONTROL_REP1,AEG588A1_S1_L002_R1_001.fastq.gz,AEG588A1_S1_L002_R2_001.fastq.gz
+sample,fastq_1,fastq_2,ref_genome
+SAMPLE_01,/path/to/sample_01_R1.fastq.gz,/path/to/sample_01_R2.fastq.gz,/path/to/host_reference/index_prefix
+SAMPLE_02,/path/to/sample_02_R1.fastq.gz,,/path/to/host_reference/index_prefix
 ```
 
-Each row represents a fastq file (single-end) or a pair of fastq files (paired end).
+Field descriptions:
 
--->
+- `sample`: unique sample identifier
+- `fastq_1`: path to read 1 (required)
+- `fastq_2`: path to read 2 for paired-end data; leave blank for single-end samples
+- `ref_genome`: path prefix for the Bowtie2 index used for host depletion
 
-Now, you can run the pipeline using:
+The pipeline will auto-detect paired-end versus single-end reads from the file information in the samplesheet.
 
-<!-- TODO nf-core: update the following command to include all required parameters for a minimal example -->
+## Running the pipeline
+
+A minimal run looks like this:
 
 ```bash
 nextflow run mattarnoldbio/viral_metagenomics_lite \
-   -profile <docker/singularity/.../institute> \
-   --input samplesheet.csv \
-   --outdir <OUTDIR>
+  -profile docker \
+  --input ./samplesheet.csv \
+  --outdir ./results \
+  --diamond_db /path/to/nr.dmnd \
+  --krona_db /path/to/krona_db \
+  --blast_db /path/to/nt \
+  --min_contig_length 1000
+```
+
+The most relevant arguments to specify are:
+
+- `--input`: path to the sample sheet CSV
+- `--outdir`: results output directory
+- `--diamond_db`: DIAMOND database used for BLASTX-style homology search
+- `--krona_db`: Krona taxonomy database used to assign taxonomic labels
+- `--blast_db`: BLAST nt database used for secondary nucleotide confirmation
+- `--min_contig_length`: minimum contig length retained after filtering
+
+Example with a params file:
+
+```bash
+nextflow run mattarnoldbio/viral_metagenomics_lite \
+  -profile docker \
+  -params-file params.yaml
+```
+
+```yaml
+input: './samplesheet.csv'
+outdir: './results'
+diamond_db: '/path/to/nr.dmnd'
+krona_db: '/path/to/krona_db'
+blast_db: '/path/to/nt'
+min_contig_length: 1000
 ```
 
 > [!WARNING]
-> Please provide pipeline parameters via the CLI or Nextflow `-params-file` option. Custom config files including those provided by the `-c` Nextflow option can be used to provide any configuration _**except for parameters**_; see [docs](https://nf-co.re/docs/running/run-pipelines#using-parameter-files).
+> Please provide pipeline parameters via the CLI or Nextflow `-params-file` option. Custom config files including those provided by the `-c` Nextflow option can be used to provide any configuration except for parameters; see the nf-core documentation for details.
+
+## Output structure
+
+The pipeline writes results into the output directory, including:
+
+- `multiqc/` and a MultiQC HTML report
+- `preprocessed_reads/` for trimmed/deduplicated and host-depleted reads
+- `contigs/` for separate and combined assembled contigs, including viral contigs
+- `db_search_results/` for DIAMOND and BLAST output tables
+- `final_results/` for the filtered final virus/non-virus hit sets
+- `pipeline_info/` for execution metadata and software versions
 
 ## Credits
 
 mattarnoldbio/viral_metagenomics_lite was originally written by Matt Arnold.
-
-We thank the following people for their extensive assistance in the development of this pipeline:
-
-<!-- TODO nf-core: If applicable, make list of people who have also contributed -->
 
 ## Contributions and Support
 
@@ -75,12 +129,7 @@ If you would like to contribute to this pipeline, please see the [contributing g
 
 ## Citations
 
-<!-- TODO nf-core: Add citation for pipeline after first release. Uncomment lines below and update Zenodo doi and badge at the top of this file. -->
-<!-- If you use mattarnoldbio/viral_metagenomics_lite for your analysis, please cite it using the following doi: [10.5281/zenodo.XXXXXX](https://doi.org/10.5281/zenodo.XXXXXX) -->
-
-<!-- TODO nf-core: Add bibliography of tools and data used in your pipeline -->
-
-An extensive list of references for the tools used by the pipeline can be found in the [`CITATIONS.md`](CITATIONS.md) file.
+An extensive list of references for the tools used in the pipeline can be found in the [`CITATIONS.md`](CITATIONS.md) file.
 
 This pipeline uses code and infrastructure developed and maintained by the [nf-core](https://nf-co.re) community, reused here under the [MIT license](https://github.com/nf-core/tools/blob/main/LICENSE).
 
