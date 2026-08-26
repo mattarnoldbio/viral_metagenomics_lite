@@ -98,6 +98,8 @@ nextflow run mattarnoldbio/viral_metagenomics_lite \
   -params-file params.yaml
 ```
 
+A complete example parameter file is provided in [params.yaml](params.yaml). It contains the default values from the pipeline config and can be copied and edited for your own run.
+
 ```yaml
 input: './samplesheet.csv'
 outdir: './results'
