@@ -64,8 +64,28 @@ process DIAMOND_BLASTX {
         gzip -c -d ${fasta} > ${fasta_name}
     fi
 
-    DB=`find -L ./ -name "*.dmnd" | sed 's/\\.dmnd\$//'`
+    # Resolve the DB basename. Supports:
+    #   1) A native DIAMOND .dmnd file
+    #   2) A multi-volume, aliased BLAST protein db (mydb.pal referencing mydb.00, mydb.01 ...)
+    #   3) A single-volume BLAST protein db (mydb.phr/.pin/.psq)
+    DMND_FILE=\$(find -L ./ -maxdepth 1 -name "*.dmnd" | head -1)
 
+    if [ -n "\$DMND_FILE" ]; then
+        DB=\${DMND_FILE%.dmnd}
+    else
+        ALIAS_FILE=\$(find -L ./ -maxdepth 1 -name "*.pal" | head -1)
+        if [ -n "\$ALIAS_FILE" ]; then
+            DB=\${ALIAS_FILE%.*}
+        else
+            DB_FILE=\$(find -L ./ -maxdepth 1 -name "*.phr" | head -1)
+            if [ -z "\$DB_FILE" ]; then
+                echo "ERROR: no DIAMOND (.dmnd) or BLAST protein database (.phr/.pal) found in staged input." >&2
+                exit 1
+            fi
+            DB=\${DB_FILE%.*}
+        fi
+    fi
+    
     diamond \\
         blastx \\
         --threads ${task.cpus} \\

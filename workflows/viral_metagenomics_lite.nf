@@ -131,13 +131,10 @@ workflow VIRAL_METAGENOMICS_LITE {
         def meta = [id: "all_contigs"]
         tuple (meta, all_contigs)
     }
-    ch_diamond_db = channel.fromPath(params.diamond_db, checkIfExists: true)
-                            .map{
-                                db_path -> 
-                                def meta = [id: "blast_db"]
-
-                                tuple(meta, db_path)
-                            }
+    
+    ch_diamond_db = channel.fromPath("${params.diamond_db}*", checkIfExists: true)
+                        .collect()
+                        .map { db_files -> tuple([id: "blast_db"], db_files) }
 
 
     //
