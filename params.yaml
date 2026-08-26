@@ -2,6 +2,7 @@
 # This file keeps the pipeline defaults in one place; the config file itself is kept
 # intentionally lean and only retains the settings needed for runtime and profile setup.
 
+
 ### ESSENTIAL PARAMETERS
 ## You will almost always want to edit these, or think about them before running the pipeline.
 
@@ -14,10 +15,11 @@ krona_db: '/Users/arno01m/db/krona/taxonomy'
 # BLAST database prefix/basename, e.g. '/path/to/nt' for nt.nhr / nt.nin / nt.nsq.
 blast_db: './assets/blast'
 # Resource limits for local execution.
-local_max_cpus: 16
-local_max_memory: '64.GB'
+local_max_cpus: 10
+local_max_memory: '24.GB'
 # Minimum contig length retained after filtering.
 min_contig_length: 250
+
 
 ### OPTIONAL PARAMETERS
 ## You may want to edit these, but the defaults are usually sensible.
@@ -27,41 +29,3 @@ outdir: './output'
 # How files are published to the output directory (copy, symlink, move, etc.).
 publish_dir_mode: 'copy'
 
-
-### UNLIKELY TO NEED EDITING
-# Email summary settings.
-email: null
-email_on_fail: null
-plaintext_email: false
-# Logging and help flags.
-monochrome_logs: false
-help: false
-help_full: false
-show_hidden: false
-version: false
-# Base path used by nf-core test-data profiles.
-pipelines_testdata_base_path: 'https://raw.githubusercontent.com/nf-core/test-datasets/'
-# Suffix used in generated pipeline report filenames.
-trace_report_suffix: 'yyyy-MM-dd_HH-mm-ss'
-# Dummy R2 file used only for single-end MEGAHIT runs.
-dummy_megahit_R2: 'assets/dummy_r2_megahit.txt'
-# Optional genome/igenomes settings.
-genome: null
-igenomes_base: null
-igenomes_ignore: true
-# MultiQC-related settings.
-multiqc_config: null
-multiqc_title: null
-multiqc_logo: null
-max_multiqc_email_size: '25.MB'
-multiqc_methods_description: null
-# Institutional config metadata.
-config_profile_name: null
-config_profile_description: null
-config_profile_contact: null
-config_profile_url: null
-# Institutional config initialization settings.
-custom_config_version: 'master'
-custom_config_base: 'https://raw.githubusercontent.com/nf-core/configs/master'
-# Validate parameters before execution.
-validate_params: true
