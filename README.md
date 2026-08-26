@@ -14,9 +14,7 @@
 
 ## Introduction
 
-**mattarnoldbio/viral_metagenomics_lite** is a lightweight metagenomics workflow for identifying viral contigs from short-read sequencing data. It takes FASTQ samples, runs read quality checks and trimming, removes host reads using a Bowtie2 index, assembles contigs with MEGAHIT, searches contigs against protein and nucleotide databases, classifies hits with Krona, and filters the final set of viral and non-viral hit calls into a clean output directory.
-
-The pipeline is designed for a typical viromics or virus-discovery workflow in which the user provides a samplesheet of raw read files together with host depletion references and pre-built sequence databases. It produces QC summaries, trimmed/deduplicated reads, host-depleted reads, assembled contigs, taxonomy plots, and filtered hit tables for downstream interpretation.
+**mattarnoldbio/viral_metagenomics_lite** is a lightweight viral metagenomics workflow for short-read sequencing data. It performs read QC and trimming, removes host reads, assembles contigs, searches for viral matches against reference databases, assigns taxonomy, and filters the final hit tables into a clean set of outputs for downstream interpretation.
 
 ### Default workflow steps
 
@@ -37,9 +35,9 @@ Before running the pipeline, you need:
 
 - A samplesheet listing sample IDs and FASTQ file locations
 - A Bowtie2 host-reference index prefix for host depletion (`ref_genome` in the samplesheet)
-- A DIAMOND database for protein search (`--diamond_db`)
+- A DIAMOND database file for protein search (`--diamond_db`)
 - A Krona database for taxonomy plots (`--krona_db`)
-- A BLAST nucleotide database for confirmatory nt search (`--blast_db`)
+- A BLAST nucleotide database basename/prefix for confirmatory nt search (`--blast_db`)
 - An output directory (`--outdir`)
 
 > [!NOTE]
@@ -60,9 +58,13 @@ Field descriptions:
 - `sample`: unique sample identifier
 - `fastq_1`: path to read 1 (required)
 - `fastq_2`: path to read 2 for paired-end data; leave blank for single-end samples
-- `ref_genome`: path prefix for the Bowtie2 index used for host depletion
+- `ref_genome`: Bowtie2 index prefix used for host depletion, not the full path to a single `.bt2` file
 
 The pipeline will auto-detect paired-end versus single-end reads from the file information in the samplesheet.
+
+For host depletion, give the common prefix used to build the Bowtie2 index, e.g. `/path/to/host_index/human_hg38`. The pipeline looks for files matching `${ref_genome}*.bt2`, so values like `/path/to/host_index/human_hg38` are correct, while a full filename such as `/path/to/host_index/human_hg38.1.bt2` would not be appropriate.
+
+The BLAST database is also specified as a basename/prefix rather than a single file. For example, if your nt database exists as `/path/to/nt.nhr`, `/path/to/nt.nin`, `/path/to/nt.nsq`, etc., then pass `--blast_db /path/to/nt` rather than a full file path like `/path/to/nt.nsq`. In contrast, `--diamond_db` should point to the actual database file, usually ending in `.dmnd`.
 
 ## Running the pipeline
 
@@ -83,9 +85,9 @@ The most relevant arguments to specify are:
 
 - `--input`: path to the sample sheet CSV
 - `--outdir`: results output directory
-- `--diamond_db`: DIAMOND database used for BLASTX-style homology search
-- `--krona_db`: Krona taxonomy database used to assign taxonomic labels
-- `--blast_db`: BLAST nt database used for secondary nucleotide confirmation
+- `--diamond_db`: full path to the DIAMOND database file, usually ending in `.dmnd`
+- `--krona_db`: path to the Krona taxonomy database used to assign taxonomic labels
+- `--blast_db`: BLAST database prefix/basename, e.g. `/path/to/nt` for an nt database whose files are `/path/to/nt.nhr`, `/path/to/nt.nin`, `/path/to/nt.nsq`, etc.
 - `--min_contig_length`: minimum contig length retained after filtering
 
 Example with a params file:
@@ -104,6 +106,41 @@ krona_db: '/path/to/krona_db'
 blast_db: '/path/to/nt'
 min_contig_length: 1000
 ```
+
+### Output publishing modes
+
+The pipeline exposes Nextflow's `publish_dir_mode` option, which controls how output files are written to the output directory. This can be set on the command line as:
+
+```bash
+nextflow run mattarnoldbio/viral_metagenomics_lite \
+  -profile docker \
+  --input ./samplesheet.csv \
+  --outdir ./results \
+  --publish_dir_mode symlink
+```
+
+Common choices are:
+
+- `copy`: default behavior; duplicates files into the output directory. Safest and most portable when you want fully independent output files.
+- `symlink`: creates symbolic links to files instead of copying them. Useful when disk space is limited and the outputs are still being used from the original working directory.
+- `rellink`: creates relative symlinks to the original files. Helpful when you want a lightweight link while keeping the output directory portable across a project tree.
+- `link`: creates hard links or symlinks depending on the filesystem and setup; less common and best used when you know the backend supports it.
+- `move`: moves files into the output directory rather than copying them. Appropriate when you want to clean up intermediates or keep only the published result set.
+- `copyNoFollow`: copies files but does not follow symlinks. Useful when you want a standard copy without dereferencing link targets.
+
+In practice, `copy` is the safest default for most users, while `symlink` or `rellink` are convenient when storage space matters and the files are not expected to be moved elsewhere. `move` is more aggressive and should be used with care because it changes file location rather than leaving the original in the work directory.
+
+### `-resume` and publish mode
+
+Nextflow's `-resume` flag reuses cached results when a previous run has the same inputs and parameters. This is especially useful when re-running a pipeline after a small parameter change or after fixing a failed step.
+
+The important point for this pipeline is that `-resume` helps reuse computation, but it does not automatically change the way files are published. If you change `--publish_dir_mode` between runs, you may still get the cached downstream results, while the output directory contents are republished according to the new mode. In particular:
+
+- `copy` will write independent copies into the output directory
+- `symlink`/`rellink` will publish lightweight links, which can be convenient but may look stale or disappear if the original work files are cleaned up
+- `move` can make the published output feel more "final" but is the most disruptive choice when resuming or rerunning a workflow
+
+A common pattern is to use `-resume` for iterative debugging or reruns, while keeping `--publish_dir_mode copy` for reproducible, portable outputs.
 
 > [!WARNING]
 > Please provide pipeline parameters via the CLI or Nextflow `-params-file` option. Custom config files including those provided by the `-c` Nextflow option can be used to provide any configuration except for parameters; see the nf-core documentation for details.
