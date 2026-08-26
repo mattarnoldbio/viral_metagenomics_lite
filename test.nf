@@ -4,7 +4,7 @@ workflow  {
     
     main:
     ASSIGN_TAXONOMY (
-        params.blast_results,
+        tuple("beans" ,params.blast_results),
         params.which_db,
         tuple(params.rankedlineage, params.fullnamelineage)
     )
