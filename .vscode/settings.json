@@ -2,5 +2,5 @@
     "markdown.styles": [
         "public/vscode_markdown.css"
     ],
-    "workbench.colorTheme": "Monokai"
+    "workbench.colorTheme": "Monochrome"
 }
