@@ -1,10 +1,9 @@
 process ASSIGN_TAXONOMY {
     label 'process_high'
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/pigz:2.3.4' :
-        'biocontainers/pigz:2.3.4' }"
+        'oras://community.wave.seqera.io/library/gawk:5.4.1--8dd22ef9018762ae' :
+        'community.wave.seqera.io/library/gawk:5.4.1--8dd22ef9018762ae' }"
 
-    conda "bioconda::pigz=2.3.4"
     input:
     tuple val(meta), path(blast_results)
     val which_db
