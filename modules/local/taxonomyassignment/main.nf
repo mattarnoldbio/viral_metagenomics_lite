@@ -13,7 +13,7 @@ process ASSIGN_TAXONOMY {
 
 
     output:
-    tuple val(meta), path("*.tsv")
+    tuple val(meta), path("${which_db}_all_virus_hits.tsv")
 
     script:
     """

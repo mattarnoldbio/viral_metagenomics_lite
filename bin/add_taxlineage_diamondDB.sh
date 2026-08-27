@@ -5,6 +5,8 @@ set -euo pipefail
 # diamond blast table
 diamond_out=$1;
 
+which_db=$2;
+
 # From NCBI taxonomy: https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/new_taxdump/new_taxdump.zip 
 rankedlineage=$3;
 fullnamelineage=$4;
@@ -20,7 +22,7 @@ joined_table="${out_dir}/diamond_blastx_results_with_lineage_all_contigs.tsv";
 best_hit="${out_dir}/diamond_best_hit_per_contig.tsv";
 
 # Filtered blast table to include only assigned viruses and excludes phages, retroviruses, and picobirnaviruses
-filtered="${out_dir}/diamond_viral_contigs_no_phage_no_unassigned_no_retro.tsv";
+filtered="${out_dir}/${which_db}_all_virus_hits.tsv";
 
 # ---------------------------------------------------------------------------
 # Six recognized virus realms (post-March-2025 NCBI taxonomy), plus "Viruses"
