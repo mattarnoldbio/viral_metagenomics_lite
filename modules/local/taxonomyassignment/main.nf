@@ -17,7 +17,7 @@ process ASSIGN_TAXONOMY {
 
     script:
     """
-    AssignTaxonomy.sh $blast_results $which_db $rankedlineage $fullnamelineage 
+    add_taxlineage_diamondDB.sh $blast_results $which_db $rankedlineage $fullnamelineage 
 
     """
 }
