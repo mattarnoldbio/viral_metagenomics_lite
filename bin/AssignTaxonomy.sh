@@ -2,7 +2,7 @@
 
 blast_results=$1
 which_db=$2
-ranked_lineage=$3
+rankedlineage=$3
 fullnamelineage=$4
 
 set -euo pipefail
