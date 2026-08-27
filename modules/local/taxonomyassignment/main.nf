@@ -6,9 +6,9 @@ process ASSIGN_TAXONOMY {
 
     conda "bioconda::pigz=2.3.4"
     input:
-    tuple val(meta), val(blast_results)
+    tuple val(meta), path(blast_results)
     val which_db
-    tuple val(rankedlineage), val(fullnamelineage)
+    tuple path(rankedlineage), path(fullnamelineage)
 
     output:
     tuple val(meta), path("*.tsv")
