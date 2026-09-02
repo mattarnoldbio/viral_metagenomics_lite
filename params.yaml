@@ -15,8 +15,8 @@ krona_db: '/Users/arno01m/db/krona/taxonomy'
 # BLAST database prefix/basename, e.g. '/path/to/nt' for nt.nhr / nt.nin / nt.nsq.
 blast_db: './assets/blast'
 # Resource limits for local execution.
-local_max_cpus: 10
-local_max_memory: '24.GB'
+local_max_cpus: 8
+local_max_memory: '14.GB'
 # Minimum contig length retained after filtering.
 min_contig_length: 250
 
