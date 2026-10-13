@@ -16,7 +16,7 @@ krona_db: '/Users/arno01m/db/krona/taxonomy'
 blast_db: './assets/blast'
 # Resource limits for local execution.
 local_max_cpus: 8
-local_max_memory: '14.GB'
+local_max_memory: '64.GB'
 # Minimum contig length retained after filtering.
 min_contig_length: 250
 
