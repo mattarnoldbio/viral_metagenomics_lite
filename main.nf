@@ -67,6 +67,7 @@ workflow MATTARNOLDBIO_VIRAL_METAGENOMICS_LITE {
 
         diamond_raw                    = VIRAL_METAGENOMICS_LITE.out.diamond_raw
         diamond_separate               = VIRAL_METAGENOMICS_LITE.out.diamond_separate
+        diamond_krona                  = VIRAL_METAGENOMICS_LITE.out.diamond_krona
         diamond_combined               = VIRAL_METAGENOMICS_LITE.out.diamond_combined
         blastn_combined                = VIRAL_METAGENOMICS_LITE.out.blastn_combined
         blastn_separate_virus_hits     = VIRAL_METAGENOMICS_LITE.out.blastn_separate_virus_hits
@@ -133,6 +134,7 @@ workflow {
 
         diamond_raw                     = MATTARNOLDBIO_VIRAL_METAGENOMICS_LITE.out.diamond_raw
         diamond_separate                = MATTARNOLDBIO_VIRAL_METAGENOMICS_LITE.out.diamond_separate
+        diamond_krona                   = MATTARNOLDBIO_VIRAL_METAGENOMICS_LITE.out.diamond_krona
         diamond_combined                = MATTARNOLDBIO_VIRAL_METAGENOMICS_LITE.out.diamond_combined
         blastn_combined                 = MATTARNOLDBIO_VIRAL_METAGENOMICS_LITE.out.blastn_combined
         blastn_separate_virus_hits      = MATTARNOLDBIO_VIRAL_METAGENOMICS_LITE.out.blastn_separate_virus_hits
@@ -156,6 +158,7 @@ output {
 
     diamond_raw                     { path 'db_search_results/nr' }
     diamond_separate                { path 'db_search_results/nr' }
+    diamond_krona                   { path 'db_search_results/nr/krona' }
     diamond_combined                { path 'db_search_results/nr' }
     blastn_combined                 { path 'db_search_results/nt' }
     blastn_separate_virus_hits      { path 'db_search_results/nt' }

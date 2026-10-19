@@ -387,6 +387,7 @@ workflow VIRAL_METAGENOMICS_LITE {
                                                 .map{ _meta, _contigs, virus_hits ->
                                                     virus_hits
                                                 }
+        diamond_krona                   = KRONA_KTIMPORTBLAST_BLASTX.out.html
         diamond_combined                = CONCATENATECSVS_BLASTX.out.csv
         blastn_combined                 = BLAST_BLASTN.out.txt
         blastn_separate_virus_hits      = EXTRACT_KRONA_TAXONOMY_BLASTN.out.virus_hits
