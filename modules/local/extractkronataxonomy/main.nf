@@ -23,6 +23,6 @@ process EXTRACT_KRONA_TAXONOMY {
     uncompressed_contigs="\${contigs_file%.gz}"
     pigz -dc \$contigs_file > \$uncompressed_contigs
     ParseKrona.py -k $taxonomy_file -c \$uncompressed_contigs -o ./ -a $meta.id -w $which_db -s $score_filter -m $metadata_dir --contig_mode
-    touch ${meta.id}_${which_db}_all_virus_hits.csv
+    touch ${which_db}_${meta.id}_all_virus_hits.csv
     """
 }
