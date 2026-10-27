@@ -83,6 +83,8 @@ if __name__ == "__main__":
             line_=line.strip(">").strip("\n").split(" ")
             line__ = [ float(x.split("=")[1]) for x in line_[1:]][1:]
             ids[line_[0]] = line__
+            if which_db == "blastn" and "|" in line_[0]:
+                ids[line_[0].rsplit("|", 1)[1]] = line__
 
     with open(krona_plot_file) as fp:
         soup = BeautifulSoup(fp, "html.parser")
